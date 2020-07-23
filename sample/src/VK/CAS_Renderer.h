@@ -141,6 +141,7 @@ private:
     VkImageView                     m_tonemapSRV;
 
     // widgets
+    Wireframe                       m_wireframe;
     WireframeBox                    m_wireframeBox;
 
     VkRenderPass                    m_render_pass_shadow;

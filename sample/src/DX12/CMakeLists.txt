@@ -19,6 +19,8 @@
 
 project (CAS_Sample_DX12)
 
+include(${CMAKE_CURRENT_SOURCE_DIR}/../../common.cmake)
+
 set(sources
     CAS_CS.cpp
     CAS_CS.h
@@ -29,56 +31,22 @@ set(sources
     stdafx.cpp
     stdafx.h)
 
-source_group("Sources"            FILES ${sources})
-
 set(Shaders_src
     ${CMAKE_CURRENT_SOURCE_DIR}/CAS_Shader.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/CAS_RenderPS.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../ffx-cas/ffx_a.h
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../ffx-cas/ffx_cas.h)
 
-source_group("Shaders"         FILES ${Shaders_src})
+source_group("sources" FILES ${sources})
+source_group("shaders" FILES ${Shaders_src})
 
-foreach(fullFileName ${Shaders_src})
-    get_filename_component(file ${fullFileName} NAME)
-    message("Generating custom command for ${fullFileName}")
-    add_custom_command(
-        OUTPUT   ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibDX/${file}
-        PRE_BUILD
-        COMMAND cmake -E make_directory ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibDX
-        COMMAND cmake -E copy ${fullFileName}  ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibDX
-        MAIN_DEPENDENCY  ${fullFileName}
-        COMMENT "Updating ${file}, copying shader to bin"
-    )
-endforeach()
+copyCommand("${Shaders_src}" ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibDX)
 
 add_executable(${PROJECT_NAME} WIN32 ${sources} ${Shaders_src})
-target_link_libraries (${PROJECT_NAME} LINK_PUBLIC Framework_DX12 ImGUI amd_ags DXC)
+target_link_libraries (${PROJECT_NAME} LINK_PUBLIC Cauldron_DX12 ImGUI amd_ags DXC d3dcompiler D3D12)
 target_include_directories (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../../ffx-cas)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_HOME_DIRECTORY}/bin")
-
-IF (MSVC)
-
-	IF (CMAKE_MAJOR_VERSION LESS 3)
-
-		MESSAGE(WARNING "CMake version 3.0 or newer is required use build variable TARGET_FILE")
-
-	ELSE()
-
-		ADD_CUSTOM_COMMAND(
-
-			TARGET ${PROJECT_NAME}
-
-			POST_BUILD
-
-			COMMAND "mt.exe" -manifest \"${CMAKE_CURRENT_SOURCE_DIR}\\dpiawarescaling.manifest\" -inputresource:\"$<TARGET_FILE:${PROJECT_NAME}>\"\;\#1 -outputresource:\"$<TARGET_FILE:${PROJECT_NAME}>\"\;\#1
-
-			COMMENT "Adding display aware manifest..."
-
-		)
-
-	ENDIF()
-
-ENDIF(MSVC)
+set_source_files_properties(${Shaders_src} PROPERTIES VS_TOOL_OVERRIDE "Text")
+addManifest(${PROJECT_NAME})
 
