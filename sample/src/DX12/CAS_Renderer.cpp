@@ -21,6 +21,8 @@
 
 #include "CAS_Renderer.h"
 
+#define USE_SHADOWMASK false
+
 //--------------------------------------------------------------------------------------
 //
 // OnCreate
@@ -57,11 +59,14 @@ void CAS_Renderer::OnCreate(Device* pDevice, SwapChain *pSwapChain)
     // Create a Shadowmap atlas to hold 4 cascades/spotlights
     m_shadowMap.InitDepthStencil(pDevice, "m_pShadowMap", &CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32_TYPELESS, 2*1024, 2*1024, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL));
     m_resourceViewHeaps.AllocDSVDescriptor(1, &m_ShadowMapDSV);
+    m_resourceViewHeaps.AllocCBV_SRV_UAVDescriptor(1, &m_ShadowMapSRV);
     m_shadowMap.CreateDSV(0, &m_ShadowMapDSV);
+    m_shadowMap.CreateSRV(0, &m_ShadowMapSRV);
 
     m_skyDome.OnCreate(pDevice, &m_UploadHeap, &m_resourceViewHeaps, &m_ConstantBufferRing, &m_VidMemBufferPool, "..\\media\\envmaps\\papermill\\diffuse.dds", "..\\media\\envmaps\\papermill\\specular.dds", DXGI_FORMAT_R16G16B16A16_FLOAT, 4);
     m_skyDomeProc.OnCreate(pDevice, &m_resourceViewHeaps, &m_ConstantBufferRing, &m_VidMemBufferPool, DXGI_FORMAT_R16G16B16A16_FLOAT, 4);
-    m_wireframeBox.OnCreate(pDevice, &m_resourceViewHeaps, &m_ConstantBufferRing, &m_VidMemBufferPool, DXGI_FORMAT_R16G16B16A16_FLOAT, 4);
+    m_wireframe.OnCreate(pDevice, &m_resourceViewHeaps, &m_ConstantBufferRing, &m_VidMemBufferPool, DXGI_FORMAT_R16G16B16A16_FLOAT, 4);
+    m_wireframeBox.OnCreate(pDevice, &m_resourceViewHeaps, &m_ConstantBufferRing, &m_VidMemBufferPool);
     m_downSample.OnCreate(pDevice, &m_resourceViewHeaps, &m_ConstantBufferRing, &m_VidMemBufferPool, DXGI_FORMAT_R16G16B16A16_FLOAT);
     m_bloom.OnCreate(pDevice, &m_resourceViewHeaps, &m_ConstantBufferRing, &m_VidMemBufferPool, DXGI_FORMAT_R16G16B16A16_FLOAT);
 
@@ -100,6 +105,7 @@ void CAS_Renderer::OnDestroy()
     m_ImGUI.OnDestroy();
     m_bloom.OnDestroy();
     m_downSample.OnDestroy();
+    m_wireframe.OnDestroy();
     m_wireframeBox.OnDestroy();
     m_skyDomeProc.OnDestroy();
     m_skyDome.OnDestroy();
@@ -185,6 +191,11 @@ void CAS_Renderer::OnDestroyWindowSizeDependentResources()
     m_HDR.OnDestroy();
     m_HDRMSAA.OnDestroy();
     m_depthBuffer.OnDestroy();
+
+    m_depthBuffer.OnDestroy();
+    m_HDRMSAA.OnDestroy();
+    m_HDR.OnDestroy();
+    m_Tonemap.OnDestroy();
 }
 
 
@@ -254,8 +265,10 @@ int CAS_Renderer::LoadScene(GLTFCommon *pGLTFCommon, int stage)
             &m_VidMemBufferPool,
             m_pGLTFTexturesAndBuffers,
             &m_skyDome,
-            &m_shadowMap,
+            USE_SHADOWMASK,
             DXGI_FORMAT_R16G16B16A16_FLOAT,
+            DXGI_FORMAT_UNKNOWN,
+            DXGI_FORMAT_UNKNOWN,
             4
         );
     }
@@ -272,8 +285,7 @@ int CAS_Renderer::LoadScene(GLTFCommon *pGLTFCommon, int stage)
             &m_ConstantBufferRing,
             &m_VidMemBufferPool,
             m_pGLTFTexturesAndBuffers,
-            DXGI_FORMAT_R16G16B16A16_FLOAT,
-            4
+            &m_wireframe
         );
 #if (USE_VID_MEM==true)
         // we are borrowing the upload heap command list for uploading to the GPU the IBs and VBs
@@ -357,7 +369,7 @@ void CAS_Renderer::OnRender(State *pState, SwapChain *pSwapChain)
     per_frame *pPerFrame = NULL;
     if (m_pGLTFTexturesAndBuffers)
     {
-        pPerFrame = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->SetPerFrameData(0);
+        pPerFrame = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->SetPerFrameData(pState->camera);
 
         //override gltf camera with ours
         pPerFrame->mCameraViewProj = pState->camera.GetView() * pState->camera.GetProjection();
@@ -490,7 +502,7 @@ void CAS_Renderer::OnRender(State *pState, SwapChain *pSwapChain)
         if (m_pGltfPBR && pPerFrame != NULL)
         {
             //set per frame constant buffer values
-            m_pGltfPBR->Draw(pCmdLst1);
+            m_pGltfPBR->Draw(pCmdLst1, &m_ShadowMapSRV);
         }
 
         // draw object's bounding boxes
@@ -517,7 +529,7 @@ void CAS_Renderer::OnRender(State *pState, SwapChain *pSwapChain)
             {
                 XMMATRIX spotlightMatrix = XMMatrixInverse(NULL, pPerFrame->lights[i].mLightViewProj);
                 XMMATRIX worldMatrix = spotlightMatrix * pPerFrame->mCameraViewProj;
-                m_wireframeBox.Draw(pCmdLst1, worldMatrix, vCenter, vRadius, vColor);
+                m_wireframeBox.Draw(pCmdLst1, &m_wireframe, worldMatrix, vCenter, vRadius, vColor);
             }
 
             m_GPUTimer.GetTimeStamp(pCmdLst1, "Light's frustum");

@@ -203,7 +203,7 @@ void CAS_Sample::OnResize(uint32_t width, uint32_t height)
         //
         if (m_Width > 0 && m_Height > 0)
         {
-            m_swapChain.OnCreateWindowSizeDependentResources(m_Width, m_Height);
+            m_swapChain.OnCreateWindowSizeDependentResources(m_Width, m_Height, false);
             m_pNode->OnCreateWindowSizeDependentResources(&m_swapChain, &m_state, m_Width, m_Height);
         }
     }

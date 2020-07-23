@@ -56,41 +56,13 @@ void CAS_Renderer::OnCreate(Device *pDevice, SwapChain *pSwapChain)
     m_shadowMap.InitDepthStencil(m_pDevice, 2*1024, 2 * 1024, VK_FORMAT_D32_SFLOAT, VK_SAMPLE_COUNT_1_BIT, "ShadowMap");
     m_shadowMap.CreateSRV(&m_shadowMapSRV);
     m_shadowMap.CreateDSV(&m_shadowMapDSV);
-    // Shadow RT
-    {
-        VkImageMemoryBarrier currBarrier = {};
-        currBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        currBarrier.srcAccessMask = 0;
-        currBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        currBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        currBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        currBarrier.image = m_shadowMap.Resource();
-        currBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        currBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        currBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-        currBarrier.subresourceRange.baseMipLevel = 0;
-        currBarrier.subresourceRange.levelCount = 1;
-        currBarrier.subresourceRange.baseArrayLayer = 0;
-        currBarrier.subresourceRange.layerCount = 1;
-    }
 
     // Create render pass shadow
     //
     {
         /* Need attachments for render target and depth buffer */
         VkAttachmentDescription attachments[1];
-
-        // depth RT
-        attachments[0].format = m_shadowMap.GetFormat();
-        attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
-        attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        attachments[0].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        attachments[0].flags = 0;
-
+        AttachClearBeforeUse(m_shadowMap.GetFormat(), VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, attachments + 0);
         VkAttachmentReference depth_reference = { 0, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
 
         VkSubpassDescription subpass = {};
@@ -137,74 +109,17 @@ void CAS_Renderer::OnCreate(Device *pDevice, SwapChain *pSwapChain)
     // Create HDR MSAA render pass color with clear
     //
     {
-        /* Need attachments for render target and depth buffer */
-        VkAttachmentDescription attachments[2];
-
-        // color MSAA RT
-        attachments[0].format = VK_FORMAT_R16G16B16A16_SFLOAT;
-        attachments[0].samples = VK_SAMPLE_COUNT_4_BIT;
-        attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        attachments[0].finalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        attachments[0].flags = 0;
-
-        // depth RT
-        attachments[1].format = VK_FORMAT_D32_SFLOAT;
-        attachments[1].samples = VK_SAMPLE_COUNT_4_BIT;
-        attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        attachments[1].flags = 0;
-
-        VkAttachmentReference color_reference = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-        VkAttachmentReference depth_reference = { 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
-
-        VkSubpassDescription subpass = {};
-        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpass.flags = 0;
-        subpass.inputAttachmentCount = 0;
-        subpass.pInputAttachments = NULL;
-        subpass.colorAttachmentCount = 1;
-        subpass.pColorAttachments = &color_reference;
-        subpass.pResolveAttachments = NULL;
-        subpass.pDepthStencilAttachment = &depth_reference;
-        subpass.preserveAttachmentCount = 0;
-        subpass.pPreserveAttachments = NULL;
-
-        VkRenderPassCreateInfo rp_info = {};
-        rp_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        rp_info.pNext = NULL;
-        rp_info.attachmentCount = 2;
-        rp_info.pAttachments = attachments;
-        rp_info.subpassCount = 1;
-        rp_info.pSubpasses = &subpass;
-        rp_info.dependencyCount = 0;
-        rp_info.pDependencies = NULL;
-
-        VkResult res = vkCreateRenderPass(m_pDevice->GetDevice(), &rp_info, NULL, &m_render_pass_HDR_MSAA);
-        assert(res == VK_SUCCESS);
+        VkAttachmentDescription colorAttachment, depthAttachment;
+        AttachClearBeforeUse(VK_FORMAT_R16G16B16A16_SFLOAT, VK_SAMPLE_COUNT_4_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, &colorAttachment);
+        AttachClearBeforeUse(VK_FORMAT_D32_SFLOAT, VK_SAMPLE_COUNT_4_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, &depthAttachment);
+        m_render_pass_HDR_MSAA = CreateRenderPassOptimal(m_pDevice->GetDevice(), 1, &colorAttachment, &depthAttachment);
     }
 
     // Create tone map render pass
     {
         // color RT
         VkAttachmentDescription attachments[1];
-        attachments[0].format = VK_FORMAT_R16G16B16A16_SFLOAT;
-        attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
-        attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        attachments[0].finalLayout = VK_IMAGE_LAYOUT_GENERAL;
-        attachments[0].flags = 0;
-
+        AttachNoClearBeforeUse(VK_FORMAT_R16G16B16A16_SFLOAT, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, attachments + 0);
         VkAttachmentReference color_reference = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 
         VkSubpassDescription subpass = {};
@@ -247,16 +162,7 @@ void CAS_Renderer::OnCreate(Device *pDevice, SwapChain *pSwapChain)
     {
         // color RT
         VkAttachmentDescription attachments[1];
-        attachments[0].format = pSwapChain->GetFormat();
-        attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
-        attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-        attachments[0].flags = 0;
-
+        AttachNoClearBeforeUse(pSwapChain->GetFormat(), VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, attachments + 0);
         VkAttachmentReference color_reference = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 
         VkSubpassDescription subpass = {};
@@ -287,7 +193,8 @@ void CAS_Renderer::OnCreate(Device *pDevice, SwapChain *pSwapChain)
 
     m_skyDome.OnCreate(pDevice, m_render_pass_HDR_MSAA, &m_UploadHeap, VK_FORMAT_R16G16B16A16_SFLOAT, &m_resourceViewHeaps, &m_ConstantBufferRing, &m_VidMemBufferPool, "..\\media\\envmaps\\papermill\\diffuse.dds", "..\\media\\envmaps\\papermill\\specular.dds", VK_SAMPLE_COUNT_4_BIT);
     m_skyDomeProc.OnCreate(pDevice, m_render_pass_HDR_MSAA, &m_UploadHeap, VK_FORMAT_R16G16B16A16_SFLOAT, &m_resourceViewHeaps, &m_ConstantBufferRing, &m_VidMemBufferPool, VK_SAMPLE_COUNT_4_BIT);
-    m_wireframeBox.OnCreate(pDevice, m_render_pass_HDR_MSAA, &m_resourceViewHeaps, &m_ConstantBufferRing, &m_VidMemBufferPool, VK_SAMPLE_COUNT_4_BIT);
+    m_wireframe.OnCreate(pDevice, m_render_pass_HDR_MSAA, &m_resourceViewHeaps, &m_ConstantBufferRing, &m_VidMemBufferPool, VK_SAMPLE_COUNT_4_BIT);
+    m_wireframeBox.OnCreate(pDevice, &m_resourceViewHeaps, &m_ConstantBufferRing, &m_VidMemBufferPool);
     m_downSample.OnCreate(pDevice, &m_resourceViewHeaps, &m_ConstantBufferRing, &m_VidMemBufferPool, VK_FORMAT_R16G16B16A16_SFLOAT);
     m_bloom.OnCreate(pDevice, &m_resourceViewHeaps, &m_ConstantBufferRing, &m_VidMemBufferPool, VK_FORMAT_R16G16B16A16_SFLOAT);
 
@@ -319,6 +226,7 @@ void CAS_Renderer::OnDestroy()
     m_bloom.OnDestroy();
     m_downSample.OnDestroy();
     m_wireframeBox.OnDestroy();
+    m_wireframe.OnDestroy();
     m_skyDomeProc.OnDestroy();
     m_skyDome.OnDestroy();
     m_shadowMap.OnDestroy();
@@ -395,74 +303,29 @@ void CAS_Renderer::OnCreateWindowSizeDependentResources(SwapChain *pSwapChain, S
     // Create depth buffer
     //
     {
-        m_depthBuffer.InitDepthStencil(m_pDevice, Width, Height, VK_FORMAT_D32_SFLOAT, VK_SAMPLE_COUNT_4_BIT, "DepthBuffer");
+        m_depthBuffer.InitDepthStencil(m_pDevice, pState->renderWidth, pState->renderHeight, VK_FORMAT_D32_SFLOAT, VK_SAMPLE_COUNT_4_BIT, "DepthBuffer");
         m_depthBuffer.CreateDSV(&m_depthBufferView);
-
-        VkImageMemoryBarrier currBarrier = {};
-        currBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        currBarrier.srcAccessMask = 0;
-        currBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        currBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        currBarrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        currBarrier.image = m_depthBuffer.Resource();
-        currBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        currBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        currBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-        currBarrier.subresourceRange.baseMipLevel = 0;
-        currBarrier.subresourceRange.levelCount = 1;
-        currBarrier.subresourceRange.baseArrayLayer = 0;
-        currBarrier.subresourceRange.layerCount = 1;
     }
 
     // Create Texture + RTV with x4 MSAA
     //
     {
-        m_HDRMSAA.InitRendertarget(m_pDevice, pState->renderWidth, pState->renderHeight, VK_FORMAT_R16G16B16A16_SFLOAT, VK_SAMPLE_COUNT_4_BIT, static_cast<VkImageUsageFlags>(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT), false, "HDRMSAA");
+        m_HDRMSAA.InitRenderTarget(m_pDevice, pState->renderWidth, pState->renderHeight, VK_FORMAT_R16G16B16A16_SFLOAT, VK_SAMPLE_COUNT_4_BIT, static_cast<VkImageUsageFlags>(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT), false, "HDRMSAA");
         m_HDRMSAA.CreateRTV(&m_HDRMSAASRV);
-
-        VkImageMemoryBarrier currBarrier = {};
-        currBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        currBarrier.srcAccessMask = 0;
-        currBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-        currBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        currBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        currBarrier.image = m_HDRMSAA.Resource();
-        currBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        currBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        currBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        currBarrier.subresourceRange.baseMipLevel = 0;
-        currBarrier.subresourceRange.levelCount = 1;
-        currBarrier.subresourceRange.baseArrayLayer = 0;
-        currBarrier.subresourceRange.layerCount = 1;
     }
 
     // Create Texture + RTV, to hold the resolved scene
     //
     {
-        m_HDR.InitRendertarget(m_pDevice, pState->renderWidth, pState->renderHeight, VK_FORMAT_R16G16B16A16_SFLOAT, VK_SAMPLE_COUNT_1_BIT, static_cast<VkImageUsageFlags>(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT), false, "HDR");
+        m_HDR.InitRenderTarget(m_pDevice, pState->renderWidth, pState->renderHeight, VK_FORMAT_R16G16B16A16_SFLOAT, VK_SAMPLE_COUNT_1_BIT, static_cast<VkImageUsageFlags>(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT), false, "HDR");
         m_HDR.CreateSRV(&m_HDRSRV);
     }
 
     // Create Texture + RTV, to hold the tonemapped scene
     //
     {
-        m_tonemapTexture.InitRendertarget(m_pDevice, pState->renderWidth, pState->renderHeight, VK_FORMAT_R16G16B16A16_SFLOAT, VK_SAMPLE_COUNT_1_BIT, static_cast<VkImageUsageFlags>(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT), false, "Tonemap");
+        m_tonemapTexture.InitRenderTarget(m_pDevice, pState->renderWidth, pState->renderHeight, VK_FORMAT_R16G16B16A16_SFLOAT, VK_SAMPLE_COUNT_1_BIT, static_cast<VkImageUsageFlags>(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT), false, "Tonemap");
         m_tonemapTexture.CreateSRV(&m_tonemapSRV);
-
-        VkImageMemoryBarrier currBarrier = {};
-        currBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        currBarrier.srcAccessMask = 0;
-        currBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        currBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        currBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        currBarrier.image = m_tonemapTexture.Resource();
-        currBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        currBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        currBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        currBarrier.subresourceRange.baseMipLevel = 0;
-        currBarrier.subresourceRange.levelCount = 1;
-        currBarrier.subresourceRange.baseArrayLayer = 0;
-        currBarrier.subresourceRange.layerCount = 1;
     }
 
     // Create framebuffer for the MSAA RT
@@ -507,7 +370,7 @@ void CAS_Renderer::OnCreateWindowSizeDependentResources(SwapChain *pSwapChain, S
     //
     m_downSample.OnCreateWindowSizeDependentResources(pState->renderWidth, pState->renderHeight, &m_HDR, 5); //downsample the HDR texture 5 times
     m_bloom.OnCreateWindowSizeDependentResources(pState->renderWidth / 2, pState->renderHeight / 2, m_downSample.GetTexture(), 5, &m_HDR);
-    m_toneMapping.OnCreateWindowSizeDependentResources(m_HDRSRV);
+    m_toneMapping.UpdatePipelines(m_render_pass_tonemap);
     m_CAS.OnCreateWindowSizeDependentResources(pState->renderWidth, pState->renderHeight, targetWidth, targetHeight, m_tonemapSRV, pState->CASState, pState->usePackedMath);
 
     m_UploadHeap.FlushAndFinish();
@@ -602,16 +465,19 @@ int CAS_Renderer::LoadScene(GLTFCommon *pGLTFCommon, int stage)
         // same thing as above but for the PBR pass
         m_pGltfPBR = new GltfPbrPass();
         m_pGltfPBR->OnCreate(
-        m_pDevice,
-        m_render_pass_HDR_MSAA,
-        &m_UploadHeap,
-        &m_resourceViewHeaps,
-        &m_ConstantBufferRing,
-        &m_VidMemBufferPool,
-        m_pGLTFTexturesAndBuffers,
-        &m_skyDome,
-        m_shadowMapSRV,
-        VK_SAMPLE_COUNT_4_BIT
+            m_pDevice,
+            m_render_pass_HDR_MSAA,
+            &m_UploadHeap,
+            &m_resourceViewHeaps,
+            &m_ConstantBufferRing,
+            &m_VidMemBufferPool,
+            m_pGLTFTexturesAndBuffers,
+            &m_skyDome,
+            m_shadowMapSRV,
+            true,
+            false,
+            false,
+            VK_SAMPLE_COUNT_4_BIT
         );
 #if (USE_VID_MEM==true)
         m_VidMemBufferPool.UploadData(m_UploadHeap.GetCommandList());
@@ -625,13 +491,13 @@ int CAS_Renderer::LoadScene(GLTFCommon *pGLTFCommon, int stage)
         // just a bounding box pass that will draw boundingboxes instead of the geometry itself
         m_pGltfBBox = new GltfBBoxPass();
         m_pGltfBBox->OnCreate(
-        m_pDevice,
-        m_render_pass_HDR_MSAA,
-        &m_resourceViewHeaps,
-        &m_ConstantBufferRing,
-        &m_VidMemBufferPool,
-        m_pGLTFTexturesAndBuffers,
-        VK_SAMPLE_COUNT_4_BIT
+            m_pDevice,
+            m_render_pass_HDR_MSAA,
+            &m_resourceViewHeaps,
+            &m_ConstantBufferRing,
+            &m_VidMemBufferPool,
+            m_pGLTFTexturesAndBuffers,
+            &m_wireframe
         );
 #if (USE_VID_MEM==true)
         // we are borrowing the upload heap command list for uploading to the GPU the IBs and VBs
@@ -725,7 +591,7 @@ void CAS_Renderer::OnRender(State *pState, SwapChain *pSwapChain)
     per_frame *pPerFrame = NULL;
     if (m_pGLTFTexturesAndBuffers)
     {
-        pPerFrame = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->SetPerFrameData(0);
+        pPerFrame = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->SetPerFrameData(pState->camera);
 
         //override gltf camera with ours
         pPerFrame->mCameraViewProj = pState->camera.GetView() * pState->camera.GetProjection();
@@ -934,7 +800,7 @@ void CAS_Renderer::OnRender(State *pState, SwapChain *pSwapChain)
             {
                 XMMATRIX spotlightMatrix = XMMatrixInverse(NULL, pPerFrame->lights[i].mLightViewProj);
                 XMMATRIX worldMatrix = spotlightMatrix * pPerFrame->mCameraViewProj;
-                m_wireframeBox.Draw(cmd_buf, worldMatrix, vCenter, vRadius, vColor);
+                m_wireframeBox.Draw(cmd_buf, &m_wireframe, worldMatrix, vCenter, vRadius, vColor);
             }
 
             m_GPUTimer.GetTimeStamp(cmd_buf, "Light's frustum");
@@ -1034,7 +900,6 @@ void CAS_Renderer::OnRender(State *pState, SwapChain *pSwapChain)
         SetPerfMarkerEnd(cmd_buf);
     }
 
-    int imageIndex = pSwapChain->WaitForSwapChain();
     SetPerfMarkerBegin(cmd_buf, "rendering to swap chain");
 
     // Tonemapping ------------------------------------------------------------------------
@@ -1061,7 +926,7 @@ void CAS_Renderer::OnRender(State *pState, SwapChain *pSwapChain)
         vkCmdSetScissor(cmd_buf, 0, 1, &m_scissor);
         vkCmdSetViewport(cmd_buf, 0, 1, &m_viewport);
 
-        m_toneMapping.Draw(cmd_buf, pState->exposure, pState->toneMapper);
+        m_toneMapping.Draw(cmd_buf, m_HDRSRV, pState->exposure, pState->toneMapper);
         vkCmdEndRenderPass(cmd_buf);
 
         m_GPUTimer.GetTimeStamp(cmd_buf, "Tone mapping");
@@ -1071,6 +936,7 @@ void CAS_Renderer::OnRender(State *pState, SwapChain *pSwapChain)
 
     // Cas ------------------------------------------------------------------------
     //
+    int imageIndex = pSwapChain->WaitForSwapChain();
     {
         m_CAS.Upscale(cmd_buf, m_tonemapTexture, m_tonemapSRV, pState->CASState != CAS_State_NoCas, pState->usePackedMath, pState->CASState);
         m_GPUTimer.GetTimeStamp(cmd_buf, "CAS");

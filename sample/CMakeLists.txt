@@ -29,6 +29,9 @@ foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
     set( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_HOME_DIRECTORY}/bin )
 endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 
+# reference libs used by both backends
+add_subdirectory(libs/cauldron)
+
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
 
 if(GFX_API STREQUAL DX12)
@@ -50,6 +53,3 @@ else()
     message(STATUS "----------------------------------------------------------------------------------------")
     message(FATAL_ERROR "")
 endif()
-
-# reference libs used by both backends
-add_subdirectory(libs/cauldron)

@@ -104,8 +104,9 @@ namespace CAS_SAMPLE_VK
             layoutBindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
             layoutBindings[0].pImmutableSamplers = NULL;
 
-            m_pResourceViewHeaps->CreateDescriptorSetLayoutAndAllocDescriptorSet(&layoutBindings, &m_renderDescriptorSetLayout, &m_renderSrcSRVDescriptorSet);
-            m_pResourceViewHeaps->CreateDescriptorSetLayoutAndAllocDescriptorSet(&layoutBindings, &m_renderDescriptorSetLayout, &m_renderDstSRVDescriptorSet);
+            m_pResourceViewHeaps->CreateDescriptorSetLayout(&layoutBindings, &m_renderDescriptorSetLayout);
+            m_pResourceViewHeaps->AllocDescriptor(m_renderDescriptorSetLayout, &m_renderSrcSRVDescriptorSet);
+            m_pResourceViewHeaps->AllocDescriptor(m_renderDescriptorSetLayout, &m_renderDstSRVDescriptorSet);
             m_renderFullscreen.OnCreate(pDevice, renderPass, "CAS_RenderPS.glsl", pStaticBufferPool, pDynamicBufferRing, m_renderDescriptorSetLayout);
         }
 
@@ -123,12 +124,13 @@ namespace CAS_SAMPLE_VK
         }
         m_renderFullscreen.OnDestroy();
 
+        vkDestroySampler(m_pDevice->GetDevice(), m_renderSampler, nullptr);
+
         m_pResourceViewHeaps->FreeDescriptor(m_upscaleDescriptorSet);
+        vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_upscaleDescriptorSetLayout, NULL);
+
         m_pResourceViewHeaps->FreeDescriptor(m_renderSrcSRVDescriptorSet);
         m_pResourceViewHeaps->FreeDescriptor(m_renderDstSRVDescriptorSet);
-
-        vkDestroySampler(m_pDevice->GetDevice(), m_renderSampler, nullptr);
-        vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_upscaleDescriptorSetLayout, NULL);
         vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_renderDescriptorSetLayout, NULL);
     }
 

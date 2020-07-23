@@ -81,7 +81,7 @@ public:
 
 private:
     Device                         *m_pDevice;
-
+    
     uint32_t                        m_Width;
     uint32_t                        m_Height;
 
@@ -125,6 +125,7 @@ private:
     // shadowmaps
     Texture                         m_shadowMap;
     DSV                             m_ShadowMapDSV;
+    CBV_SRV_UAV                     m_ShadowMapSRV;
 
     // MSAA RT
     Texture                         m_HDRMSAA;
@@ -141,6 +142,7 @@ private:
     RTV                             m_TonemapRTV;
     
     // widgets
+    Wireframe                       m_wireframe;
     WireframeBox                    m_wireframeBox;
 
     std::vector<TimeStamp>          m_TimeStamps;

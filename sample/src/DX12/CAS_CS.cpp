@@ -82,7 +82,7 @@ namespace CAS_SAMPLE_DX12
         defines["CAS_SAMPLE_SHARPEN_ONLY"] = "0"; 
         m_casFast.OnCreate(pDevice, pResourceViewHeaps, "CAS_Shader.hlsl", "mainCS", 1, 1, 64, 1, 1, &defines);
 
-        m_renderFullscreen.OnCreate(pDevice, "CAS_RenderPS.hlsl", pResourceViewHeaps, pStaticBufferPool, 1, &SamplerDesc, outFormat);
+        m_renderFullscreen.OnCreate(pDevice, "CAS_RenderPS.hlsl", pResourceViewHeaps, pStaticBufferPool, 1, 1, &SamplerDesc, outFormat);
     }
 
     void CAS_Filter::OnCreateWindowSizeDependentResources(Device *pDevice, uint32_t renderWidth, uint32_t renderHeight, uint32_t Width, uint32_t Height, CAS_State CASState, bool packedMathEnabled)
@@ -139,6 +139,14 @@ namespace CAS_SAMPLE_DX12
 
     void CAS_Filter::OnDestroy()
     {
+        m_casSharpenOnly.OnDestroy();
+        m_casFast.OnDestroy();
+        m_renderFullscreen.OnDestroy();
+        if (m_pDevice->IsFp16Supported())
+        {
+            m_casPackedFast.OnDestroy();
+            m_casPackedSharpenOnly.OnDestroy();
+        }
     }
 
     void CAS_Filter::Upscale(ID3D12GraphicsCommandList* pCommandList, bool useCas, bool usePacked, CAS_State casState, ID3D12Resource* inputResource, CBV_SRV_UAV inputSrv)

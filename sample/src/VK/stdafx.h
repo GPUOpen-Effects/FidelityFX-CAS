@@ -51,7 +51,7 @@ using namespace DirectX;
 #include "Base\SwapChain.h"
 #include "Base\UploadHeap.h"
 #include "Base\GPUTimeStamps.h"
-#include "Base\DebugMarkersExt.h"
+#include "Base\ExtDebugMarkers.h"
 #include "Base\CommandListRing.h"
 #include "Base\StaticBufferPool.h"
 #include "Base\DynamicBufferRing.h"
