@@ -21,26 +21,30 @@ THE SOFTWARE.
 
 Contrast Adaptive Sharpening (CAS) is a low overhead adaptive sharpening algorithm with optional up-sampling. The technique is developed by Timothy Lottes (creator of FXAA) and was created to provide natural sharpness without artifacts. This directory contains the source code for CAS as well as samples demonstrating the technique (with source). The directory structure is as follows:
 
-- sample contains the source code for the above 2 CAS samples
+- [sample](sample) contains the source code for the above 2 CAS samples
 - media is a submodule which contains the art assets for the above CAS samples
-- ffx-cas contains the headers that implement the CAS algorithm
+- [ffx-cas](ffx-cas) contains the headers that implement the CAS algorithm
 
-You can find the binaries for CAS in the release section on github.
+You can find the binaries for CAS in the [releases](https://github.com/GPUOpen-Effects/FidelityFX-CAS/releases) section on GitHub.
 
 ## Build Instructions
 
 The CAS samples are written in C++ and require CMake and Visual Studio to be built. To build the samples, follow the below steps:
 
- - Run sample\build\GenerateSolutions.bat which creates the sample\build\DX12 and sample\build\VK folder
- - Go into sample\build\DX12 or sample\build\VK and open the CAS_Sample_DX12/VK.sln files
- - Build the projects and run it (you should see a 3D helmet).
+ - Run [sample\build\GenerateSolutions.bat](sample/build/GenerateSolutions.bat) which creates the `sample\build\DX12` and `sample\build\VK` folders
+ - Go into `sample\build\DX12` or `sample\build\VK` and open the `CAS_Sample_DX12\VK.sln` files
+ - Build the project and run it (you should see a 3D helmet).
 
 ## Running Instructions
 
 When running the samples, you can use the below options to test different configurations of CAS:
 
- - You can make the demo full screen via alt-enter. You can set the render resolution which decides how much CAS will have to upscale the image when CAS is enabled (without enabling, it’s a naïve upscale). The GUI will also let you choose different CAS modes (sharpen only or up-sample) with packed and unpacked versions.
- - You can use the 'q', 'w' and 'e' keys to set different CAS modes. 'q' sets it to no CAS, 'w' sets it to up-sampling, and 'e' sets it to sharpen only.
+ - You can make the demo full screen via `Alt+Enter`. You can set the render resolution which decides how much CAS will have to upscale the image when CAS is enabled (without enabling, it’s a naïve upscale). The GUI will also let you choose different CAS modes (sharpen only or up-sample) with packed and unpacked versions.
+ - You can use the `q`, `w` and `e` keys to set different CAS modes. `q` sets it to no CAS, `w` sets it to up-sampling, and `e` sets it to sharpen only.
  - The code implementing CAS can be found in FFX_CAS\cas-samples\src
 
-You can find the documentation for the CAS algorithm and how to implement it using the FFX CAS headers at ffx-cas\ffx_cas.h.
+You can find the documentation for the CAS algorithm and how to implement it using the FFX CAS headers at [ffx-cas\ffx_cas.h](ffx-cas/ffx_cas.h).
+
+## Command Line Tool (CasCmdLine)
+
+There is also a command line tool to allow you to test the effects of FidelityFX CAS on standalone image files such as screenshots from your game, allowing you to evaluate it before integration. Please see [the README.md](CasCmdLine/README.md) in the [CasCmdLine](CasCmdLine) subdirectory for more instructions.
