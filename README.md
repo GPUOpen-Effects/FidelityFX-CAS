@@ -1,4 +1,4 @@
-﻿# FidelityFX CAS (Contrast Adaptive Sharpening) v1.0
+# FidelityFX CAS (Contrast Adaptive Sharpening) v1.0
 
 Copyright (c) 2020 Advanced Micro Devices, Inc. All rights reserved.
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -45,6 +45,6 @@ When running the samples, you can use the below options to test different config
 
 You can find the documentation for the CAS algorithm and how to implement it using the FFX CAS headers at [ffx-cas\ffx_cas.h](ffx-cas/ffx_cas.h).
 
-## Command Line Tool (CasCmdLine)
+## Command Line Tool
 
-There is also a command line tool to allow you to test the effects of FidelityFX CAS on standalone image files such as screenshots from your game, allowing you to evaluate it before integration. Please see [the README.md](CasCmdLine/README.md) in the [CasCmdLine](CasCmdLine) subdirectory for more instructions.
+There is also a command line tool to allow you to test the effects of FidelityFX CAS on standalone image files such as screenshots from your game, allowing you to evaluate it before integration. Please see the [FidelityFX-CLI](https://github.com/GPUOpen-Effects/FidelityFX-CLI) project for more details.
