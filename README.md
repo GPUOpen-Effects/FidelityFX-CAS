@@ -48,3 +48,45 @@ You can find the documentation for the CAS algorithm and how to implement it usi
 ## Command Line Tool
 
 There is also a command line tool to allow you to test the effects of FidelityFX CAS on standalone image files such as screenshots from your game, allowing you to evaluate it before integration. Please see the [FidelityFX-CLI](https://github.com/GPUOpen-Effects/FidelityFX-CLI) project for more details.
+
+## How to use this project with CMAKE
+
+Here is an example of using this project with cmake using the following structure
+
+```tree
+.
+├── CMakeLists.txt
+├── include
+└── src
+    └── main.cpp
+```
+
+CMakeLists.txt
+```cmake
+cmake_minimum_required(VERSION 3.22)
+project(fidelifyfx-cas-baseproject VERSION 0.1)
+
+include(FetchContent)
+
+FetchContent_Declare(
+  ffx-cas
+  GIT_REPOSITORY https://github.com/arthurafarias/FidelityFX-CAS.git
+  GIT_TAG        61fd4a02976a77fc57b3d4263fbed2a4e58ffb31
+)
+
+FetchContent_MakeAvailable(ffx-cas)
+
+add_executable(${PROJECT_NAME} src/main.cpp)
+
+target_include_directories(${PROJECT_NAME} PUBLIC ${ffx-cas_SOURCE_DIR})
+```
+
+src/main.c
+```c
+#include "ffx-cas/ffx_a.h"
+
+int main(int argc, char* argv[])
+{
+    return 0;
+}
+```

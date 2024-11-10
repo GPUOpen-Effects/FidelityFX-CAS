@@ -1,0 +1,19 @@
+cmake_minimum_required(VERSION 3.22)
+project(FidelityFX-CAS VERSION 1.0.2)
+
+add_library(${PROJECT_NAME} INTERFACE)
+
+target_include_directories(${PROJECT_NAME} INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include/ffx-cas>
+)
+
+install(TARGETS ${PROJECT_NAME}
+    EXPORT ${PROJECT_NAME}_TARGETS
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+    PUBLIC_HEADER DESTINATION include
+)
+
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/ffx-cas DESTINATION include)
